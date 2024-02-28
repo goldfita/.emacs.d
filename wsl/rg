@@ -1,0 +1,9 @@
+#!/usr/bin/bash
+
+
+if [ -n $WSL_DISTRO_NAME ] && [[ "$(pwd)" =~ /home/share|/mnt/c ]]; then
+    "$WIN_DEPS_PATH"/ripgrep/rg.exe "$@" | sed 's/\r\n$/\n/'
+    exit ${PIPESTATUS[0]}
+else
+    /usr/bin/rg "$@"
+fi

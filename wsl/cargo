@@ -1,0 +1,6 @@
+#!/usr/bin/bash
+
+
+"$WIN_DEPS_PATH"/cargo/bin/cargo.exe "$@" | sed 's/\r\n$/\n/'
+exit ${PIPESTATUS[0]}
+

@@ -1,0 +1,13 @@
+#!/usr/bin/bash
+
+
+# magit uses emacsclient as the editor, but it needs to run from within the docker image
+if [ -n "$GIT_EDITOR" ]; then
+    GIT_EDITOR="wsl.exe -d ${WSL_DISTRO_NAME} -u ${USER} -e docker exec $(cat /cid) ${GIT_EDITOR}"
+fi
+
+export MSYS_NO_PATHCONV=1
+WSLENV="${WSLENV}:GIT_EDITOR:MSYS_NO_PATHCONV/w" "$WIN_DEPS_PATH"/git/bin/git.exe "$@" | sed 's/\r\n$/\n/'
+
+# magit uses the return code
+exit ${PIPESTATUS[0]}

@@ -1,0 +1,7 @@
+#!/usr/bin/bash
+
+
+m="$(wslpath -m "$WIN_DEPS_PATH"/maven/bin/mvn.cmd)"
+cmd.exe /C "$m" "$@" | sed 's/\r\n$/\n/'
+exit ${PIPESTATUS[0]}
+

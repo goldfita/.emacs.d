@@ -1,0 +1,8 @@
+*
+!run-emacs.sh
+!emacs.Dockerfile
+!wsl/*
+!.gitignore
+!*.el
+!abbrev_defs
+!README.txt
