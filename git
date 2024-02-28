@@ -1,0 +1,8 @@
+#!/bin/bash
+
+git_exe=/mnt/c/software/git/bin/git.exe
+#if [[ "$*" =~ rev-parse ]] && [[ "$*" =~ --show-toplevel ]]; then
+#    /wsl/usr/bin/wslpath $("$git_exe" "$@")
+#else
+    "$git_exe" "$@"
+#fi
