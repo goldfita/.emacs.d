@@ -22,10 +22,12 @@ Projectile:
 On windows, create a shortcut from .projectile to .gitignore to make projectile use .gitignore.
 
 Lsp-java:
-Install Eclipse JDT LS and set the path. It seems that you cannot use the snapshots from eclipse site. You
-have to use the version that lsp-java puts in the .cache directory. Somehow, they are not the same. Check
-lsp-java-jdt-download-url for version. Run lsp-describe-session for capabilities.
-    https://projects.eclipse.org/projects/eclipse.jdt.ls/downloads
+Install Eclipse JDT LS and set the path. Check lsp-java-jdt-download-url for version. Run lsp-describe-session
+for capabilities. Install the language server version of Java and JDT LS and create workspace directory:
+https://download.eclipse.org/jdtls/milestones/
+C:\software\ls-jdk
+C:\software\eclipse.jdt.ls
+C:\software\ls-workspace
 
 Tramp:
 To use plink on Windows, first generate public/private keys on Linux. Add the public key to authorized keys
@@ -35,10 +37,9 @@ on remote.
 Copy private key (pem format) to Windows. Load in PuttyGen, and save as ppk format. In Pageant, add the
 private key. Now you should be able to use plink to ssh.
    plink -no-antispoof user@server
-Set tg/remote-user, tg/remote-host, and tg/remote-host-regexp in early-init.el. Then enter '/-::' in find
-file to find a remote file in user's home directory, or use '/-::/' to go to the root directory. To open a
-file as root, you only need to type '/root::'. If emacs hangs, delete tramp customizations and the tramp
-file before retrying.
+Set tg/remote-user and tg/remote-host in early-init.el. Then enter '/-::' in find file to find a remote file
+in user's home directory, or use '/-::/' to go to the root directory. To open a file as root, you only need to
+type '/root::'. If emacs hangs, delete tramp customizations and the tramp file before retrying.
 
 ***External Dependencies***
 
@@ -61,11 +62,11 @@ WSL/Windows:
 
 To run from WSL, create a shortcut with the folliwng target.
 
-C:\Windows\System32\wsl.exe -d ubuntu -u <username> -e bash -ic "nohup ~/.emacs.d/run-emacs.sh > /dev/null 2>&1 &"
+C:\Windows\System32\wsl.exe -d ubuntu -u <username> -e bash -ic "nohup ~/run-emacs.sh > /dev/null 2>&1 &"
 
 Set up the default WSL image and install docker:
 
-usermod -d /mnt/c/Development <username>  # as root
+usermod -d /mnt/c/Development/.emacs.d <username>  # as root
 echo "$USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$USER
 # Install docker (https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository)
 sudo apt-get install docker.io

@@ -62,6 +62,8 @@
 
 (use-package page-break-lines
   :diminish
+  :custom
+  (page-break-lines-modes '(text-mode prog-mode special-mode fundamental-mode))
   :config
   (global-page-break-lines-mode))
 (use-package cl-lib)
@@ -185,8 +187,8 @@
      ("s"                                 . consult-ripgrep)))
   :config
   (consult-customize
-   consult-ripgrep consult-buffer consult-recent-file consult-bookmark
-   :preview-key (list :debounce 0.4 "<up>" "<down>"))
+   consult-ripgrep consult-buffer consult-recent-file consult-bookmark ;consult-git-log-grep
+   :preview-key (list :debounce 0.4 "<up>" "<down>" "M-."))
   (autoload 'projectile-project-root "projectile"))
 (use-package all-the-icons-completion
   :after (marginalia all-the-icons)
@@ -283,7 +285,7 @@
   (tramp-default-method (if tg/using-windows "plink" "ssh"))
   (tramp-default-host (car tg/remote-hosts))
   ;; https://emacs.stackexchange.com/questions/26560/bookmarking-remote-directories-trampsudo
-  ;(tramp-save-ad-hoc-proxies t)
+  ;;(tramp-save-ad-hoc-proxies t)
   :config
   ;;(modify-coding-system-alist 'process "plink" 'utf-8-unix)
   ;; https://stackoverflow.com/questions/2177687/open-file-via-ssh-and-sudo-with-emacs
@@ -315,6 +317,7 @@
   :config
   (set-face-attribute 'switch-window-label nil :height 20.0))
 (use-package embark
+  :disabled t
   :bind
   (("C-."   . embark-act)
    ("M-."   . embark-dwim)
@@ -396,6 +399,10 @@
              (not buffer-display-table))
     (setq buffer-display-table (make-display-table))
     (aset buffer-display-table ?\^M [])))
+(defun tg/get-buffer-create (&rest args)
+  (with-current-buffer (car args) (tg/hide-carriage-return-special-buffers)))
+(advice-add 'get-buffer-create :after #'tg/get-buffer-create)
+;; doesn't work for fundamental mode
 (add-hook 'after-change-major-mode-hook 'tg/hide-carriage-return-special-buffers)
 
 
@@ -490,7 +497,21 @@
         (set-window-configuration ediff-last-windows)))))
 (use-package consult-ls-git
   :after consult
-  :commands consult-ls-git)
+  :commands consult-ls-git
+  :config
+  (when tg/using-wsl
+    (defun tg/process-file-convert-path (func &rest args)
+      (let ((rest (cddddr args)))
+        (apply func `(,@(seq-subseq args 0 4)
+                      ,(car rest)
+                      ,(wsl-path-convert-to-win (cadr rest))
+                      ,@(cddr rest)))))
+    (defun tg/consult-ls-git--execute-git-command (func &rest args)
+      (advice-add 'process-file :around #'tg/process-file-convert-path)
+      (unwind-protect
+          (apply func args)
+        (advice-remove 'process-file #'tg/process-file-convert-path)))
+    (advice-add 'consult-ls-git--execute-git-command :around #'tg/consult-ls-git--execute-git-command)))
 (use-package consult-git-log-grep
   :commands consult-git-log-grep
   :custom
@@ -529,8 +550,9 @@
   ;; Setting dashboard-items will cause other packages to load. Projects will
   ;; load projectile. Bookmarks will load tramp if there are remote bookmarks.
   (dashboard-banner-logo-title        "Emacs Dashboard")
-  (dashboard-projects-switch-function 'consult-projectile-switch-project)
+  (dashboard-projects-switch-function 'projectile-switch-project-by-name)
   (dashboard-projects-backend         'projectile)
+  (dashboard-icon-type                'all-the-icons)
   (dashboard-set-file-icons           t)
   (dashboard-items  (rassq-delete-all 0
                                       `((recents   . 20)
@@ -657,7 +679,6 @@
    (dimmer-mode))
 (use-package all-the-icons
   :if (display-graphic-p)
-  :defer t
   :init
   (let ((inst-name "install-fonts"))
     (when (and (not (file-directory-p tg/fonts-path))
@@ -737,7 +758,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Keyboard/Coding
 (keymap-global-set "<remap> <dabbrev-expand>" 'hippie-expand)
-(keymap-global-set "<remap> <kill-buffer>"    'kill-this-buffer)
+(keymap-global-set "<remap> <kill-buffer>"    'kill-current-buffer)
 (keymap-global-set "C-z"                      'switch-to-minibuffer)
 (keymap-global-unset "C-x C-z")
 (keymap-global-unset "C-x C-c")
@@ -817,7 +838,8 @@
               (("C-m" . newline-and-indent)))
   :mode ("\\.yml\\'" . yaml-mode))
 (use-package powershell
-  :mode ("\\.ps1\\'" . powershell-mode))
+  ;;:mode ("\\.ps1\\'" . powershell-mode)
+  )
 (use-package rustic
   :mode ("\\.rs\\'" . rustic-mode)
   :custom
@@ -836,24 +858,25 @@
 (defun tg/nxml-mode-customizations ()
   (setq-local nxml-child-indent 4))
 (defun tg/prog-mode-customizations ()
+  (auto-fill-mode)
+  (hl-line-mode)
+  (display-line-numbers-mode)
+  (whitespace-mode)
   (setq-local ;;fill-column                     110
               comment-auto-fill-only-comments t
               display-line-numbers            'relative
               display-line-numbers-width      (length (number-to-string
-                                                       (line-number-at-pos (point-max)))))
-  (auto-fill-mode)
-  (hl-line-mode)
-  (display-line-numbers-mode)
-  (whitespace-mode))
+                                                       (line-number-at-pos (point-max))))))
 (dolist (hook '(prog-mode-hook nxml-mode-hook sgml-mode-hook yaml-mode-hook conf-mode-hook))
   (add-hook hook 'tg/prog-mode-customizations))
 (add-hook 'nxml-mode-hook 'tg/nxml-mode-customizations)
 
 (setq auto-mode-alist
       (append
-       '(("\\.java'"        . java-mode)
-         ("\\.js'"          . js-mode)
+       '(;;("\\.java\\'"      . java-mode)
+         ("\\.js\\'"        . js-mode)
          ("\\.xml\\'"       . nxml-mode)
+         ("\\.sh\\'"        . shell-script-mode)
          ("Dockerfile.*\\'" . dockerfile-mode)
          ;;("\\.rs\\'"        . rustic-mode)
          )
@@ -886,11 +909,12 @@
   (projectile-track-known-projects-automatically nil)
   ;; Hybrid is needed to use .gitignore, but this causes it to look for tr
   ;; https://github.com/bbatsov/projectile/issues/1302
-  ;; FIXME but native is needed for TRAMP to find file!
+  ;; FIXME: but native is needed for TRAMP to find file!
   (projectile-indexing-method (if tg/using-windows 'hybrid 'alien))
   (projectile-git-submodule-command nil)
   ;;(projectile-enable-caching nil) ; or use C-u C-c p f for finding files
   :config
+  (setq projectile-switch-project-action '(lambda () (tg/start-ide t)))
   (projectile-mode 1))
 (use-package consult-projectile
   :after (consult projectile)

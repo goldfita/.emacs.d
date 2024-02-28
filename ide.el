@@ -10,6 +10,7 @@
                        ("rust-analyzer" . ()))
       tg/one-ls-host (getenv "LS_IP")
       tg/one-ls-port 60000
+      tg/one-ls-init "EONELS\n\n\n\n"
       tg/npm-path    (f-join tg/win-deps-path "nodejs/npm"))
 
 
@@ -25,6 +26,8 @@
   (lsp-rust-rls-server-command      "rust-analyzer")
   (lsp-disabled-clients             '(semgrep-ls))
   :init
+  ;; FIXME: https://github.com/emacs-lsp/lsp-java/issues/438
+  (setq c-basic-offset 4)
   :config
   ;;(add-to-list 'lsp-file-watch-ignored-files "[/\\\\]pom\\.xml\\'")
   (defun tg/lsp-save-buffer-after-rename (operation)
@@ -68,7 +71,7 @@
       ,(lambda (filter sentinel name environment-fn _workspace)
          (let* ((null-proc (make-process :name (format "null-proc-%s*" name) :noquery t))
                 (port (plist-get (cdr (assoc name tg/lsp-servers)) :client-port))
-                (init-msg (concat name ":" (system-name) ":" (number-to-string port)))
+                (init-msg (concat name ":" (system-name) ":" (number-to-string port) tg/one-ls-init))
                 (retries 0)
                 (tcp-client-connection)
                 (lsp-client)
@@ -117,7 +120,7 @@
          (let* ((null-proc (make-process :name (format "null-proc-%s*" name) :noquery t :sentinel sentinel))
                 (server-port (plist-get (cdr (assoc name tg/lsp-servers)) :server-port))
                 (port (or server-port tg/one-ls-port))
-                (init-msg (concat name "::" (if server-port (number-to-string port) "")))
+                (init-msg (concat name "::" (if server-port (number-to-string port) "") tg/one-ls-init))
                 (tcp-proc (lsp--open-network-stream tg/one-ls-host port (concat name "::tcp"))))
            (process-send-string tcp-proc init-msg)
            (set-process-query-on-exit-flag null-proc nil)
@@ -150,9 +153,15 @@
 (use-package lsp-java
   :after (lsp-mode dap-mode treemacs)
   :custom
-  (lsp-java-configuration-runtimes `[(:name "JavaSE-1.8"
-                                            :path ,(wsl-path-convert-to-win (getenv "JAVA_HOME"))
-                                            :default t)])
+  (lsp-java-workspace-dir (f-join tg/win-deps-path "ls-workspace"))
+  (lsp-java-configuration-runtimes
+   `[(:name "JavaSE-1.8"
+			:path ,(wsl-path-convert-to-win (getenv "JAVA_HOME")))
+      (:name "JavaSE-21"
+             :path ,(wsl-path-convert-to-win (f-join tg/win-deps-path "ls-jdk"))
+             :default t)
+      (:name "JavaSE-17"
+             :path ,(wsl-path-convert-to-win (f-join tg/win-deps-path "ls-jdk-17")))])
   (lsp-java-configuration-maven-user-settings tg/mvn-settings-file-path)
   :init
   (use-package request :defer t)
@@ -174,6 +183,12 @@
     (wsl-path-convert-to-win (f-join tg/npm-path "node_modules/typescript/lib")))
   (cl-defun lsp--npm-dependency-path (&key package path &allow-other-keys)
     (f-join tg/npm-path package path)))
+
+(use-package lsp-xml
+  :ensure nil
+  :after (lsp-mode dap-mode treemacs)
+  :custom
+  (lsp-xml-server-work-dir (wsl-path-convert-to-win (f-join tg/win-deps-path ".lsp4xml"))))
 
 (use-package consult-lsp
   :after (consult lsp-mode))
@@ -225,6 +240,8 @@
   :after treemacs)
 (use-package treemacs-projectile
   :after (treemacs projectile))
+(use-package treemacs-magit
+  :after (treemacs magit))
 (use-package yasnippet :defer t)
 (use-package flycheck :defer t)
 (use-package consult-flycheck
@@ -295,40 +312,47 @@
       (tg/most-recent-buffer-in-project (cdr bufs)))))
 
 (let ((lsp-proj-path '())
-      (loading))
+      (loaded))
   (defun tg/start-lsp ()
-    (message "--%s %s %s %s" major-mode (buffer-file-name) (projectile-project-root) lsp-proj-path)
+    (let ((inhibit-message t))
+      (message "[tg/start-lsp] mode=%s  file=%s  project root=%s  project paths=%s"
+               major-mode (buffer-file-name) (projectile-project-root) lsp-proj-path))
     (when (member (projectile-project-root) lsp-proj-path)
-      ;;(message "start lsp")
       (lsp)))
 
-  (defun tg/after-init-ide (start-lsp? proj-root)
+  (defun tg/post-init-ide (start-lsp? proj-root)
     (when start-lsp?
       (add-to-list 'lsp-proj-path (or (projectile-project-root) proj-root)))
-    ;;(message "---after ide %s %s %s %s %s" start-lsp? major-mode (buffer-file-name) (current-buffer) projectile-project-name)
+    (let ((inhibit-message t))
+      (message "[tg/post-init-ide] start=%s  mode=%s  file=%s  buffer=%s  project=%s"
+               start-lsp? major-mode (buffer-file-name) (current-buffer) projectile-project-name))
     (tg/start-lsp-on-buffer
      (tg/project-recentf-open-all
       (tg/most-recent-buffer-in-project (buffer-list))))
     (treemacs-add-and-display-current-project-exclusively))
       
   (defun tg/start-ide (&optional start-lsp?)
-    (unless loading
-      (setq loading t)
-      (let ((proj-root (when start-lsp? (projectile-project-root projectile-project-name))))
+    (let ((proj-root (when start-lsp? (projectile-project-root projectile-project-name))))
+      (if loaded
+          (unless (eq 'treemacs-mode major-mode)
+            (tg/post-init-ide start-lsp? proj-root))
+        (setq loaded t)
         (if (and lsp-proj-path
                  (member (projectile-project-root) lsp-proj-path))
             (switch-to-buffer (tg/most-recent-buffer-in-project (buffer-list)))
-          ;;(message "- %s %s %s %s" start-lsp? major-mode lsp-proj-path proj-root)
-          (run-with-timer 0 nil (lambda () (tg/after-init-ide start-lsp? proj-root)))
+          (let ((inhibit-message t))
+            (message "[tg/start-ide] start=%s  mode=%s  project paths=%s  project root=%s"
+                     start-lsp? major-mode lsp-proj-path proj-root))
+          (run-with-timer 0 nil (lambda () (tg/post-init-ide start-lsp? proj-root)))
           (unless (and (featurep 'treemacs)
-                       (eq 'visible (treemacs-current-visibility)))
+                       ;;(eq 'visible (treemacs-current-visibility))
+                       )
             (treemacs)
             (other-window -1))
           (unless (and (featurep 'projectile) projectile-mode) (projectile-mode))
           (centaur-tabs-mode t)
           (add-hook 'after-change-major-mode-hook 'tg/toggle-tabs)
-          (add-hook 'window-state-change-functions 'tg/toggle-tabs nil t))))
-    (setq loading nil)))
+          (add-hook 'window-state-change-functions 'tg/toggle-tabs nil t))))))
 
 (cl-flet ((get-hook-symb (s) (intern (concat (symbol-name s) "-hook"))))
   (dolist (s tg/lsp-modes)

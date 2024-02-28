@@ -1,4 +1,4 @@
-# docker build --build-arg WSL_DISTRO_NAME=$WSL_DISTRO_NAME --build-arg USER=$USER --build-arg VERSION=30.0.93 -f emacs.Dockerfile -t emacs .
+# docker build --build-arg USER=$USER --build-arg VERSION=30.0.93 -f emacs.Dockerfile -t emacs .
 # https://www.masteringemacs.org/article/speed-up-emacs-libjansson-native-elisp-compilation
 
 
@@ -54,7 +54,6 @@ ENV PATH="/home/${USER}:${PATH}"
 ENV EMACSLOADPATH=\
 "${INST_PATH}/emacs/${VERSION}/lisp/":\
 "${INST_PATH}/emacs/${VERSION}/lisp/emacs-lisp/":\
-"${HOME}/.emacs.d/":\
 "${HOST_MOUNT}/home/${USER}/.emacs.d/"
 
 # So apt doesn't ask for user input
