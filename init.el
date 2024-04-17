@@ -742,16 +742,17 @@
   :config
   (customize-set-variable 'whitespace-trailing-regexp (concat "\\b.*?" whitespace-trailing-regexp)))
 (use-package visual-fill-column
-  :disabled
+  :bind
+  ("C-c v" . tg/visual-fill-column-customizations)
   :custom
   (visual-fill-column-center-text t)
-  :hook
-  (text-mode . tg/visual-fill-column-mode-hook)
   :init
-  ;; some modes, like nxml, derive from text
-  (defun tg/visual-fill-column-mode-hook()
-    (when (eq major-mode 'text-mode)
-      (visual-fill-column-mode))))
+  (defun tg/visual-fill-column-customizations ()
+    (interactive)
+    (setq-local fill-column 999999999)
+    (setq-local visual-fill-column-width 100)
+    (visual-line-mode)
+    (visual-fill-column-mode)))
 
 (delete-selection-mode 1)
 (setopt eval-expression-print-level  nil
@@ -761,7 +762,7 @@
         abbrev-mode                  t
         require-final-newline        t
         truncate-string-ellipsis     "…"
-        fill-column                  110
+        fill-column                  79
         tab-width                    4)
 (add-hook 'before-save-hook
           (lambda ()
@@ -801,7 +802,7 @@
 (defun tg/nxml-mode-customizations ()
   (setq-local nxml-child-indent 4))
 (defun tg/prog-mode-customizations ()
-  (setq-local ;;fill-column                     110
+  (setq-local fill-column                     110
               comment-auto-fill-only-comments t
               display-line-numbers-width      (length (number-to-string
                                                        (line-number-at-pos (point-max)))))
