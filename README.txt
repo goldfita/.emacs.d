@@ -57,6 +57,7 @@ WSL/Windows:
     Ripgrep: https://github.com/BurntSushi/ripgrep
     Python:  python-xxx.exe (install to C:\software\python)
     Java:    OpenJDK-xxx.msi (install to C:\software\jdk)
+    Node:    Install Windows NVM to c:\nvm4w and make sure NVM_SYMLINK=c:\nvm4w\nodejs
 
 ***WSL***
 

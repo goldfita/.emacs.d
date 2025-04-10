@@ -61,11 +61,11 @@ if [ $(stat --format '%U' "$XDG_RUNTIME_DIR") = root ]; then
 fi
 
 # when running nohup from shortcut, win/wsl commands don't always work immediately
-until [ -n "$LS_IP" ]; do
-    sleep .1
+#until [ -n "$LS_IP" ]; do
+#    sleep .1
     export LS_IP=$(ipconfig.exe | grep 'vEthernet.*WSL' -A4 | cut -d":" -f 2 | tail -n1 | sed -e 's/\s*//g')
     export JAVA_HOME="$(wslpath "$(cmd.exe /C echo %JAVA_HOME% | tr -d '\r')")"
-done
+#done
 
 #*** Run (set the user/group to silence dconf-CRITICAL warnings)
 cid_file=/tmp/emacs-cid-$$

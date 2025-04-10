@@ -1,4 +1,4 @@
-# docker build --build-arg USER=$USER --build-arg VERSION=30.0.93 -f emacs.Dockerfile -t emacs .
+# docker build --build-arg USER=$USER --build-arg VERSION=30.1 -f emacs.Dockerfile -t emacs .
 # https://www.masteringemacs.org/article/speed-up-emacs-libjansson-native-elisp-compilation
 
 

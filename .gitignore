@@ -6,3 +6,4 @@
 !*.el
 !abbrev_defs
 !README.txt
+!.dir-locals.el

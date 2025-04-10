@@ -43,7 +43,6 @@
 (unless tg/using-windows
   (customize-set-variable 'package-user-dir (expand-file-name ".emacs.d/elpa" tg/host-home-path)))
 (package-initialize)
-(require 'use-package)
 (customize-set-variable 'use-package-always-ensure t)
 ;; https://github.com/jwiegley/use-package/issues/256
 (advice-add 'package-install
@@ -61,11 +60,14 @@
     (add-to-list 'gnutls-trustfiles "/etc/ssl/cert.pem")))
 
 (use-package page-break-lines
-  :diminish
+  :diminish page-break-lines-modes
   :custom
   (page-break-lines-modes '(text-mode prog-mode special-mode fundamental-mode))
   :config
   (global-page-break-lines-mode))
+(use-package nadvice
+  :ensure nil
+  :demand t)
 (use-package cl-lib)
 (use-package diminish)
 (use-package bind-key)
@@ -73,7 +75,7 @@
 (use-package f)
 (use-package which-key
   :after diminish
-  :diminish
+  :diminish which-key-mode
   :custom
   (which-key-separator " ")
   (which-key-prefix-prefix "+")
@@ -109,7 +111,8 @@
           widget-image-directory         (f-join ver-path "etc/images/")
           lisp-directory                 (f-join ver-path "lisp/")
           ;;package-directory-list         (list (expand-file-name "site-lisp/elpa" ver-path))
-          custom-file                    null-device
+          custom-file                    (make-temp-file "custom.el")
+          ;;custom-file                    null-device  ;; https://lists.gnu.org/archive/html/bug-gnu-emacs/2023-10/msg00370.html
           default-directory              "~/"
           warning-minimum-level          :error
           use-package-compute-statistics t))
@@ -275,7 +278,7 @@
   :bind ([remap comment-dwim] . comment-dwim-2))
 (use-package eldoc
   :after diminish
-  :diminish
+  :diminish eldoc-mode
   :ensure nil)
 (use-package atomic-chrome :disabled) ; atomic-chrome-start-server
 (use-package tramp
@@ -392,18 +395,24 @@
 ;; hide unwanted ^M in non file buffers
 (defun tg/special-buffer-p ()
   (or (string= "*" (substring (buffer-name) 0 1))
-      (string= " *" (substring (buffer-name) 0 2))
+      ;;(string= " *" (substring (buffer-name) 0 2))
       (eq major-mode 'special-mode)))
 (defun tg/hide-carriage-return-special-buffers ()
-  (when (and (tg/special-buffer-p)
-             (not buffer-display-table))
+  (when (and (not buffer-display-table)
+             (tg/special-buffer-p))
     (setq buffer-display-table (make-display-table))
     (aset buffer-display-table ?\^M [])))
-(defun tg/get-buffer-create (&rest args)
-  (with-current-buffer (car args) (tg/hide-carriage-return-special-buffers)))
-(advice-add 'get-buffer-create :after #'tg/get-buffer-create)
-;; doesn't work for fundamental mode
+;; Doesn't work for fundamental mode
 (add-hook 'after-change-major-mode-hook 'tg/hide-carriage-return-special-buffers)
+;; Use advice around buffer creation to handle fundamental mode
+;; https://emacs.stackexchange.com/questions/83134/wrong-type-argument-subrp-with-advice-and-rust-mode
+(cl-flet ((old-fun (symbol-function 'get-buffer-create)))
+  (defun get-buffer-create (buffer-or-name &optional inhibit-buffer-hooks)
+    (prog1
+        (old-fun buffer-or-name inhibit-buffer-hooks)
+      (with-current-buffer buffer-or-name
+        (tg/hide-carriage-return-special-buffers)))))
+(advice-add 'subr-arity :override (defun tg/arity (subr) (func-arity subr)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -780,6 +789,7 @@
 (use-package whitespace
   :ensure nil
   :defer t
+  :diminish whitespace-mode
   :custom
   (whitespace-style '(face trailing))
   :config
@@ -921,6 +931,11 @@
   :init
   ;; https://gitlab.com/OlMon/consult-projectile/-/issues/13
   (setq consult-projectile-use-projectile-switch-project t))
+(use-package back-button
+  :diminish back-button-mode
+  :config
+  (back-button-mode 1))
+
 
 (when tg/lsp-modes (load "~/.emacs.d/ide.el"))
 

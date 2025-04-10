@@ -242,7 +242,9 @@
   :after (treemacs projectile))
 (use-package treemacs-magit
   :after (treemacs magit))
-(use-package yasnippet :defer t)
+(use-package yasnippet
+  :diminish yas-minor-mode
+  :hook ((lsp-mode . yas-minor-mode)))
 (use-package flycheck :defer t)
 (use-package consult-flycheck
   :after (consult flycheck))
@@ -280,13 +282,17 @@
          (exist-names (seq-filter 'file-exists-p abs-names))
          (recentf-names (seq-take exist-names tg/project-recentf-max-load))
          (last-buf))
-    ;;(message "---recent names %s %s %s" recentf-names proj-buf (projectile-project-root))
     (if (not recentf-names)
         (unless proj-buf (projectile-dired))
       (dolist (fname (reverse recentf-names))
-        ;;(message "%s" (expand-file-name fname (projectile-project-root)))
-        (setq last-buf (find-file-noselect (expand-file-name fname (projectile-project-root)))))
-      ;;(message "---last buf %s %s %s" last-buf (get-buffer-window proj-buf) major-mode)
+        (let ((buf-fname (get-file-buffer fname)))
+          (when buf-fname
+            ;;(unless (string-match "Treemacs-Scoped-Buffer" (buffer-name buf-fname))
+              ;; close file first if it has a buffer to make sure lsp runs on open
+            (kill-buffer buf-fname)));)
+        (setq last-buf (find-file-noselect fname)))
+      (let ((inhibit-message t))
+        (message "[tg/project-recentf-open-all] proj-buf=%s  last buf=%s  project buffer window=%s  mode=%s  recentf-names=%s" proj-buf last-buf (get-buffer-window proj-buf) major-mode recentf-names))
       (when (eq major-mode 'treemacs-mode) (other-window -1))
       (when-let ((proj-buf)
                  (proj-win (get-buffer-window proj-buf)))
@@ -296,12 +302,14 @@
 
 (defun tg/start-lsp-on-buffer (buf)
   (when (and buf (not (and (boundp 'lsp-mode) lsp-mode)))
-    (dolist (mode tg/lsp-modes)
-      (let ((ext-re (car (rassoc mode auto-mode-alist)))
-            (buf-file (buffer-file-name buf)))
-        ;;(message "---start on buffer %s %s %s %s" buf buf-file ext-re mode)
-        (when (and ext-re buf-file (string-match-p ext-re buf-file))
-          (funcall (symbol-function mode)))))))
+    (catch 'done
+      (dolist (mode tg/lsp-modes)
+        (let ((ext-re (car (rassoc mode auto-mode-alist)))
+              (buf-file (buffer-file-name buf)))
+          (when (and ext-re buf-file (string-match-p ext-re buf-file))
+            (let ((inhibit-message t))
+              (message "[tg/start-lsp-on-buffer] buf=%s  buf-file=%s  exte-re=%s  mode=%s" buf buf-file ext-re mode))
+            (throw 'done (funcall (symbol-function mode)))))))))
   
 (defun tg/most-recent-buffer-in-project (bufs)
   (when-let ((prj-root (projectile-project-root))
@@ -329,7 +337,8 @@
     (tg/start-lsp-on-buffer
      (tg/project-recentf-open-all
       (tg/most-recent-buffer-in-project (buffer-list))))
-    (treemacs-add-and-display-current-project-exclusively))
+    ;;(treemacs-add-and-display-current-project-exclusively)
+    )
       
   (defun tg/start-ide (&optional start-lsp?)
     (let ((proj-root (when start-lsp? (projectile-project-root projectile-project-name))))
