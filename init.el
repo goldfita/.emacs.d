@@ -422,7 +422,8 @@
   :custom
   (magit-repository-directories  tg/git-directories)
   (magit-bury-buffer-function    'magit-restore-window-configuration)
-  (magit-diff-highlight-trailing nil)
+  (magit-diff-highlight-trailing          nil)
+  (magit-diff-hide-trailing-cr-characters t)
   :bind
   (("C-c g"                          . magit-status)
    ([remap vc-revision-other-window] . magit-find-file-other-window)
@@ -937,7 +938,9 @@
   (back-button-mode 1))
 
 
-(when tg/lsp-modes (load "~/.emacs.d/ide.el"))
+(if tg/lsp-modes
+    (load "~/.emacs.d/ide.el")
+  (defun tg/start-ide (_) (projectile-find-file)))
 
 
 
