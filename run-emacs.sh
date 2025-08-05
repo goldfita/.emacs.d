@@ -12,10 +12,11 @@ fi
 #*** Start docker service.
 # When WSL has not yet started, the docker daemon will often fail to load because of a problem
 # setting up iptables. Immediately checking service status or iptables fails because the error
-# message takes some time to appear, and basically service initally lies and says dockerd is
+# message takes some time to appear, and basically service initially lies and says dockerd is
 # running. Instead, skip iptables since we're running in the host network namespace anyway.
 if [ ! -f /var/run/docker.pid ]; then
     sudo dockerd --iptables=false > /dev/null 2>&1 &
+    sleep 1
 fi
 
 

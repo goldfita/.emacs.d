@@ -1,13 +1,13 @@
 ;; Example lsp-mode config
 
 ;; ((java-mode
-;;   . ((lsp-java-workspace-dir . "C:/dev/trunk/")
+;;   . ((lsp-java-workspace-dir . "<this directory>")
 ;;      (dap-debug-template-configurations
-;;       . (("domain name"
-;;           :name "domain name"
+;;       . (("<domain name>"
+;;           :name "<domain name>"
 ;;           :type "java"
 ;;           :request "attach"
-;;           :hostName "host name"
-;;           :port portNum
-;;           :vmArgs "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=portNum")
+;;           :hostName "<development machine host name>"
+;;           :host "<windows host name>"
+;;           :port <port number>)
 ;;          )))))

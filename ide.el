@@ -162,10 +162,14 @@
              :default t)
       (:name "JavaSE-17"
              :path ,(wsl-path-convert-to-win (f-join tg/win-deps-path "ls-jdk-17")))])
-  (lsp-java-configuration-maven-user-settings tg/mvn-settings-file-path)
+  (lsp-java-configuration-maven-user-settings (f-join tg/win-root-path tg/mvn-settings-rel-file-path))
+  (lsp-java-server-install-dir (wsl-path-convert-to-win (f-join tg/win-deps-path "eclipse.jdt.ls")))
   :init
   (use-package request :defer t)
   :config
+  (defun tg/lsp-java--bundles (orig-fun)
+    (cl-map 'vector #'(lambda (f) (wsl-path-convert-to-win f)) (funcall orig-fun)))
+  (advice-add 'lsp-java--bundles :around #'tg/lsp-java--bundles)
   ;; FIXME: https://github.com/emacs-lsp/lsp-treemacs/issues/109
   (defun tg/lsp-f-ancestor-of-patch (path-args)
     (mapcar (lambda (path) (downcase path)) path-args))

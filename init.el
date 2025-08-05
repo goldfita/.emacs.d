@@ -115,7 +115,10 @@
           ;;custom-file                    null-device  ;; https://lists.gnu.org/archive/html/bug-gnu-emacs/2023-10/msg00370.html
           default-directory              "~/"
           warning-minimum-level          :error
-          use-package-compute-statistics t))
+          use-package-compute-statistics t
+          safe-local-variable-directories (mapcar #'(lambda (d)
+                                                      (f-join tg/win-root-path d))
+                                                  tg/safe-rel-dirs)))
 
 ;; Add basic unix commands to path
 (when (file-directory-p tg/git-path)

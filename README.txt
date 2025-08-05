@@ -29,6 +29,10 @@ C:\software\ls-jdk
 C:\software\eclipse.jdt.ls
 C:\software\ls-workspace
 
+For DAP, get the jar from maven central, and put it in eclipse.jdt.ls/bundles:
+https://repo1.maven.org/maven2/com/microsoft/java/com.microsoft.java.debug.plugin
+C:\software\eclipse.jdt.ls\bundles\com.microsoft.java.debug.plugin-x.y.z.jar
+
 Tramp:
 To use plink on Windows, first generate public/private keys on Linux. Add the public key to authorized keys
 on remote.
@@ -72,3 +76,6 @@ echo "$USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$USER
 # Install docker (https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository)
 sudo apt-get install docker.io
 sudo usermod -aG docker $USER  # log out and back in
+
+Update the hosts file with development machine host/IP(s). DAP uses the 'hostName' parameter set in
+.dir-locals.el. Alternatively, use '--add-host' parameter in run-emacs.sh.
